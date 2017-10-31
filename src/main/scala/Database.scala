@@ -13,14 +13,17 @@ class Database {
   }
 
   def addPerson(first: String, last: String ,accname: String, user: String, pass: String): Unit = {
+
     val p = new PersonAccount(first, last, accnum = inplay.getNew, accname, user, pass, open=false)
+
     hlist.put(p.getUser + p.getPass, p)
-    alist.+:(p)
+    p +: alist
+
   }
 
   def addPerson(p: PersonAccount): Unit = {
     hlist.put(p.getUser + p.getPass, p)
-    alist.+:(p)
+    p +: alist
   }
 
   def hasPerson(userpass: String): Boolean = if (hlist.containsKey(userpass)) true

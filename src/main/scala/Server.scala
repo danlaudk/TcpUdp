@@ -9,17 +9,18 @@ import java.util.concurrent.TimeUnit
 import scala.collection.mutable.ArrayBuffer
 
 
-object MulServer_v1 {
+object Server {
   protected var portNumber = 8540
   protected var max_Clients = 3
 
   def main(args: Array[String]): Unit = {
-    val server = new MulServer_v1(portNumber, max_Clients)
+    val server = new Server(portNumber, max_Clients)
     server.runServer()
   }
 }
 
-class MulServer_v1(val portNumber: Int, val poolSize: Int) {
+class Server(val portNumber: Int, val poolSize: Int) {
+    private val base = new Database
    var shutdownFlag = false
    var serverSocket: ServerSocket = null
   //  protected val executor: ExecutorService
@@ -28,7 +29,7 @@ class MulServer_v1(val portNumber: Int, val poolSize: Int) {
   def runServer(): Unit = {
     try {
       this.serverSocket = new ServerSocket(this.portNumber)
-      executor = Executors.newFixedThreadPool(MulServer_v1.max_Clients)
+      executor = Executors.newFixedThreadPool(Server.max_Clients)
     } catch {
       case e: IOException =>
         System.out.println("Could not create server on specific port")
@@ -39,7 +40,7 @@ class MulServer_v1(val portNumber: Int, val poolSize: Int) {
     }) try {
       val clientSocket = this.serverSocket.accept
       this.socketList.:+(clientSocket)
-      this.executor.submit(new ServerThread(clientSocket, this))
+      this.executor.submit(new ServerThread(clientSocket, this, base))
     } catch {
       case e: IOException =>
         System.out.println("Couldn't accept on the Socket")
@@ -66,7 +67,6 @@ class MulServer_v1(val portNumber: Int, val poolSize: Int) {
       }
       executor.shutdownNow
       // Cancel currently executing tasks
-      System.out.println("komme ich hierhin?")
       // Wait a while for tasks to respond to being cancelled
       if (!executor.awaitTermination(10, TimeUnit.SECONDS)) System.err.println("Pool did not terminate")
     }

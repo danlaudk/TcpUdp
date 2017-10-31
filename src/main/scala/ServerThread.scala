@@ -7,15 +7,28 @@ import java.io.UnsupportedEncodingException
 import java.net.Socket
 import java.util.regex.Pattern
 
+
 class ServerThread(// for shutdown password = "password";
                         val client: Socket,
-                        val server: MulServer_v1) extends Runnable {
+                        val server: Server,
+                   val base: Database) extends Runnable {
   private var closeFlag = false
+
+  import java.io.ObjectInputStream
+  import java.io.ObjectOutputStream
+  import java.net.Socket
+  import java.util
+
+
+
+  private var newAccounts = null
+  private var person:PersonAccount = null
 
   override def run(): Unit = {
     try {
       val in = new BufferedReader(new InputStreamReader(client.getInputStream))
       val writer = new BufferedWriter(new OutputStreamWriter(client.getOutputStream))
+
       try {
         System.out.println("Thread started with name:" + Thread.currentThread.getName)
         var userInput = new String()
@@ -23,13 +36,13 @@ class ServerThread(// for shutdown password = "password";
         while ( {
           (userInput = in.readLine) != null
         }) {
-          serverResponse = processInput(userInput)
+          serverResponse = processInput2(userInput)
           System.out.println("Received message from " + Thread.currentThread.getName + " : " + userInput)
           writer.write("Sever Response : " + serverResponse)
           writer.newLine()
           writer.flush()
           if (closeFlag) {
-            Client_v1.closeClient
+            Client.closeClient
             server.socketList.-=(client)
             client.close()
             server.shutdownAndAwaitTermination()
@@ -45,6 +58,89 @@ class ServerThread(// for shutdown password = "password";
         if (writer != null) writer.close()
       }
     }
+  }
+
+  import scala.util.control.Exception.allCatch
+  def processInput2(input: String):String = input match {
+    case input if input == "person" => {
+
+      receive(Array("sdf", "adsf", "xcv", "dfe", "vde", "useless"))
+      System.out.println("komme ich hierhin processinput2?")
+      "person received"
+    }
+    case input if input == "update" => {
+      if (base.hasPerson(input)) {
+        sendPerson(base.getPerson(input))
+        person = base.getPerson(input)
+        return "display person"
+      } else return "no such person"
+    }
+    case input => allCatch.opt(input.toInt) match {
+      case Some(i) => {
+        receive(i)
+        "int deposited or received"
+      }
+      case None => {
+        input match {
+          case _@("false" | "true") => {
+            Client.closeClient
+            server.socketList.-=(client)
+            client.close()
+            "connection closed"
+          }: String
+
+        }
+      }
+    }
+  }
+
+
+  import java.io.IOException
+
+  @throws[IOException]
+  @throws[ClassNotFoundException]
+  def receive(info: Array[String]): Unit = {
+    System.out.println("komme ich hierhin db receive?")
+
+    base.addPerson(info(0), info(1), info(2), info(3), info(4))
+  }
+
+
+  @throws[IOException]
+  @throws[ClassNotFoundException]
+  def receive(s: String): Unit = {
+    if (base.hasPerson(s)) {
+      sendPerson(base.getPerson(s))
+      person = base.getPerson(s)
+    }
+  }
+
+  import java.io.IOException
+
+  @throws[IOException]
+  def receive(n: Int): Unit = {
+    if (n > 0) {
+      person.a.deposit(n)
+      sendPerson(person)
+    }
+    else if (n < 0) {
+      person.getAccount.withdraw(n * -1)
+      sendPerson(person)
+    }
+    else {
+    }
+  }
+
+  private def sendPerson(p: PersonAccount): Unit = {
+    try {
+      val output = new ObjectOutputStream(client.getOutputStream()) // testing
+      output.writeObject(p)
+      output.flush
+    } catch {
+      case ioException: IOException =>
+
+    }
+
   }
 
   def processInput(input: String): String = {
