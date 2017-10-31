@@ -30,6 +30,9 @@ class Server(val portNumber: Int, val poolSize: Int) {
     try {
       this.serverSocket = new ServerSocket(this.portNumber)
       executor = Executors.newFixedThreadPool(Server.max_Clients)
+
+      this.executor.submit(new UdpServerThread( this))
+
     } catch {
       case e: IOException =>
         System.out.println("Could not create server on specific port")
@@ -38,6 +41,7 @@ class Server(val portNumber: Int, val poolSize: Int) {
     while ( {
       !this.shutdownFlag
     }) try {
+
       val clientSocket = this.serverSocket.accept
       this.socketList.:+(clientSocket)
       this.executor.submit(new ServerThread(clientSocket, this, base))
